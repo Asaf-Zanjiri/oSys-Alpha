@@ -1,2 +1,2 @@
 python server.py
-cmd /k
+cmd /k 
