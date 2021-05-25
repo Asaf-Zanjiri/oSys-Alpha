@@ -59,29 +59,3 @@ class Menu:
         else:
             self.targets.pop(target)
 
-    def shell(self):
-        config.custom_console = 'shell> '
-        for target in self.targets:
-            conn = config.all_connections[target]['data']['socket']
-            self.server.send(conn, 'shell')
-
-        stop_flag = False
-        while not self.targets or not stop_flag:
-            cmd = input(config.custom_console)
-            for target in self.targets:
-                print('target: ', target)
-                try:
-                    conn = config.all_connections[target]['data']['socket']
-                    if cmd.lower() == 'quit':
-                        self.server.send(conn, 'quit')
-                        stop_flag = True
-                        break
-                    self.server.send(conn, cmd)
-                    received = self.server.receive(conn).split('>', 1)
-                    print(received[1])  # Received shell data
-                except socket_error:
-                    print('[!] Connection was lost..')
-                    config.all_connections.pop(target)  # Delete dead client from the list
-                    self.quit(target)
-
-        config.custom_console = 'oSys> '
