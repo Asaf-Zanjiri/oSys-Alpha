@@ -1,4 +1,0 @@
-ngrok.exe authtoken 1szl7cSIlS7Y20k2mkQLZv2OLQT_3ybuL4qxrvFFtEcGp381h
-ngrok.exe tcp -region eu 8000
-
-3GsGrQgLwVZae77PoWFkX_4QSGAd9dukqD234pyvsoW
