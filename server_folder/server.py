@@ -1,4 +1,5 @@
 import socket
+import sys
 from threading import Thread
 import config
 from gui import start as start_gui
@@ -18,8 +19,6 @@ class Server:
         self.server_socket.bind((ip, port))
         self.server_socket.listen()
         config.log('Listening for clients...')
-        self.client_sockets = []
-        self.messages = []
 
     def close(self):
         """ Closes the server """
@@ -80,9 +79,37 @@ class Server:
 
 
 def main():
-    config.SERVER = Server('localhost', 8000)  # Initiates the server
-    Thread(target=config.SERVER.client_connections).start()  # Thread to accept new connections
-    start_gui()  # Start the GUI
+    # Default Server Parameters
+    ip = 'localhost'
+    port = 8000
+
+    # Change IP and Port according to the startup args
+    for arg in sys.argv[1:]:
+        if arg.startswith('--ip=') or arg.startswith('-i='):
+            ip_arg = arg.split('=', maxsplit=1)[1]
+            print(ip_arg)
+            if ip_arg != '':
+                ip = ip_arg
+            else:
+                config.log('Invalid ip address was inputted.')
+        elif arg.startswith('--port=') or arg.startswith('-p='):
+            try:
+                port = int(arg.split('=', maxsplit=1)[1])
+            except ValueError as e:
+                config.log(str(e))
+                config.log('Inputted port number is invalid. Starting on default port')
+
+    # Start server
+    try:
+        config.SERVER = Server(ip, port)  # Initiates the server
+        Thread(target=config.SERVER.client_connections, daemon=True).start()  # Thread to accept new connections
+        start_gui()  # Start the GUI
+    except socket.gaierror as e:
+        config.log(str(e))
+        config.log('Invalid IP address to host server on.')
+    except OverflowError as e:
+        config.log(str(e))
+        config.log('Invalid Port number to host server on.')
 
 
 if __name__ == "__main__":

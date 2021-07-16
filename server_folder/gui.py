@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemVie
 from PyQt5 import QtCore
 from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP, screenshot as Screenshot
 import config
-from sys import argv, exit
+import sys
 from socket import error as socket_error
 
 
@@ -324,7 +324,7 @@ class Menu(QWidget):
 
 def start():
     """ Starts the GUI. """
-    app = QApplication(argv)
+    app = QApplication(sys.argv)
     config.WIN = Window()
     config.WIN.show()
-    exit(app.exec())
+    sys.exit(app.exec())
