@@ -1,4 +1,4 @@
-import config as config
+import config
 
 
 def shell(command):
