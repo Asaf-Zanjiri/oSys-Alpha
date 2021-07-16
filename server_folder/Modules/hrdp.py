@@ -1,21 +1,20 @@
-import subprocess
-import random
-import string
-import os
+from subprocess import Popen, PIPE
+from random import choice
+from string import ascii_letters, digits
 import config
 
 
 def shell_command(cmd):
     """ Execute a shell command """
-    cmd = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    cmd = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     output_bytes = cmd.stdout.read() + cmd.stderr.read()
     config.log(output_bytes.decode('utf-8', errors='replace'))
 
 
 def get_random_password():
     """ Returns a randomly generated password """
-    password_characters = string.ascii_letters + string.digits + '!@#$%^&()'
-    password = ''.join(random.choice(password_characters) for i in range(8))
+    password_characters = ascii_letters + digits + '!@#$%^&()'
+    password = ''.join(choice(password_characters) for i in range(8))
     return password
 
 
@@ -58,6 +57,9 @@ def stop():
     # Notice, if HRDP doesnt do anything, make sure it has admin perms
     config.log('Stopping SSH Server...')
     shell_command('net stop sshd')  # Stops the SSH Server
+
+    config.log('Ending open SSH connections...')
+    shell_command('taskkill /F /IM sshd.exe /T')
 
     config.log('Deleting ssh-rdp-server Windows user.')
     shell_command('net user ssh-rdp-server /DELETE')  # Deletes the SSH user

@@ -1,11 +1,11 @@
-import os
+from os import system
 
 
 def restart():
     """ Restarts the pc """
-    os.system('shutdown /r /t 0')
+    system('shutdown /r /t 0')
 
 
 def shutdown():
     """ Powers off the pc """
-    os.system("shutdown /s /t 0")
+    system("shutdown /s /t 0")

