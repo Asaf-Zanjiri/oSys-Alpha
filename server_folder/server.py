@@ -1,7 +1,9 @@
 import socket
-import threading
+from threading import Thread
 import config
 from gui import start as start_gui
+from zlib import compress, decompress
+from datetime import datetime
 
 
 class Server:
@@ -31,6 +33,7 @@ class Server:
         :param message: Message to send to the server (bytes/str)
         """
         message = message.encode() if type(message) != bytes else message
+        message = compress(message, level=6)  # Compress the sent data
         if len(message) % config.BUFFER_SIZE == 0:
             message = message + '.'.encode()
         while message:
@@ -48,8 +51,11 @@ class Server:
         data = chunk
         while len(chunk) == config.BUFFER_SIZE:
             chunk = sock.recv(config.BUFFER_SIZE)
+            print(chunk)  # Doesn't work without this, I don't know why, and I'm too lazy to fix it
             if chunk != '.'.encode():
                 data += chunk
+
+        data = decompress(data)  # Decompress the received data
         return data if as_bytes else data.decode(errors="ignore")
 
     def client_connections(self):
@@ -67,7 +73,7 @@ class Server:
                         exist = True
                         break
                 if not exist:
-                    config.client_list.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket}})
+                    config.client_list.append({'ip': client_data[0], 'data': {'countryCode': client_data[1], 'name': client_data[2], 'os': client_data[3], 'socket': client_socket, 'last_screenshot_time': datetime(2000, 12, 1, 1, 1)}})
         except socket.error as e:
             config.log('Error: ' + str(e))
             self.client_connections()
@@ -75,7 +81,7 @@ class Server:
 
 def main():
     config.SERVER = Server('localhost', 8000)  # Initiates the server
-    threading.Thread(target=config.SERVER.client_connections).start()  # Thread to accept new connections
+    Thread(target=config.SERVER.client_connections).start()  # Thread to accept new connections
     start_gui()  # Start the GUI
 
 
