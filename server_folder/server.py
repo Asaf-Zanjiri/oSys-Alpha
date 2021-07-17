@@ -50,8 +50,8 @@ class Server:
         chunk = sock.recv(config.BUFFER_SIZE)
         data = chunk
         while len(chunk) == config.BUFFER_SIZE:
-            chunk = sock.recv(config.BUFFER_SIZE)
             sleep(0.001)  # To avoid receive overlap. A bit scuffed solution but it works.
+            chunk = sock.recv(config.BUFFER_SIZE)
             if chunk != '.'.encode():
                 data += chunk
 
