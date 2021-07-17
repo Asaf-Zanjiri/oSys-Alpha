@@ -11,7 +11,7 @@ TERMSRV_DLL_PATH = 'C:\\Windows\\System32\\termsrv.dll'
 def is_admin_privilege():
     """ Return if the app has admin privileges"""
     try:
-        is_admin = getuid() == 0
+        is_admin = os.getuid() == 0
     except AttributeError:
         is_admin = windll.shell32.IsUserAnAdmin() != 0
     return is_admin
