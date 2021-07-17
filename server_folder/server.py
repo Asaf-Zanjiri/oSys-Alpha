@@ -1,10 +1,11 @@
+from zlib import compress, decompress
+from gui import start as start_gui
+from threading import Thread
+from datetime import datetime
+from time import sleep
+import config
 import socket
 import sys
-from threading import Thread
-import config
-from gui import start as start_gui
-from zlib import compress, decompress
-from datetime import datetime
 
 
 class Server:
@@ -50,7 +51,7 @@ class Server:
         data = chunk
         while len(chunk) == config.BUFFER_SIZE:
             chunk = sock.recv(config.BUFFER_SIZE)
-            print(chunk)  # Doesn't work without this, I don't know why, and I'm too lazy to fix it
+            sleep(0.001)  # To avoid receive overlap. A bit scuffed solution but it works.
             if chunk != '.'.encode():
                 data += chunk
 
