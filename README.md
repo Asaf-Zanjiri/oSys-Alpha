@@ -7,6 +7,7 @@ It's not my any means perfect, However it mostly works without a problem.
 This application was developed as an educational exercise. It doesn't and shouldn't be used for any malicious intent.
 The code does not come with UAC bypass, Nor Persistence, Nor does it try to bypass any anti-virus detection.
 
+
 **Features**
 
 - Ability to Power-Off/Restart The client's machine.
@@ -19,11 +20,13 @@ The code does not come with UAC bypass, Nor Persistence, Nor does it try to bypa
 - Logs actions to a log file.
 
 
+
 **Compilation method:**
 
 Obfuscate and pack using PyArmor.
 1. `pip install PyInstaller`
 2.  `pyarmor pack --clean -e "--onefile " client.py` / `pyarmor pack --clean -e "--onefile --noconsole " server.py`
+
 
 **Usage Guidelines:**
 
@@ -34,6 +37,7 @@ Obfuscate and pack using PyArmor.
 - Default host port can be changed using the startup arg "-p=1337" or "--port=1337" ("1337" being your desired port number)
 - If you suspect you may have encountered an error please look at the log file for a possible explanation.
 - Make sure you run both server and client as Administrator (Server requires admin to make a new SSH user for the reverse connection, Client requires admin to modify termsrv.dll to enable RDP)
+
 
 
 
