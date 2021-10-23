@@ -1,5 +1,4 @@
 # oSys-Alpha
-Alpha developement of oSys.
 This program yearns to be my first attempt at making a windows RAT with python.
 It's not my any means perfect, However it mostly works without a problem.
 
